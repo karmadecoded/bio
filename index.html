@@ -238,31 +238,36 @@
     }
 
     /* Testimonials Styles */
-    .testimonials-scroll {
-      position: relative;
-      width: 100%;
-      overflow-x: hidden;
-      overflow-y: hidden;
-      padding: 20px 0;
-      cursor: grab;
-    }
-    
-    .testimonials-scroll:active {
-      cursor: grabbing;
-    }
-    
-    .testimonials-scroll::-webkit-scrollbar {
-      display: none;
-    }
-    
-    .testimonial-track {
-      display: flex;
-      gap: 30px;
-      animation: scroll 60s linear infinite;
-    }
-    
-    .testimonial-track:hover {
-      animation-play-state: paused;
+  .testimonials-scroll {
+  position: relative;
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 20px 0;
+  cursor: grab;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.testimonials-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.testimonials-scroll:active {
+  cursor: grabbing;
+}
+
+.testimonial-track {
+  display: flex;
+  gap: 30px;
+  width: max-content;
+}
+
+@keyframes scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
     }
     
     @keyframes scroll {
@@ -381,7 +386,7 @@
       <div class="featured-card">
         <div class="featured-image">
           <!-- Replace this URL with your image -->
-          <img src="https://firebasestorage.googleapis.com/v0/b/soul-code-app.firebasestorage.app/o/384cb54f-700f-4a40-a48f-c7ab31e9f4f3_image.png?alt=media&token=c7cfc77d-9a25-4927-9607-478c68c5d27c" alt="Personal Code Reading">
+          <img src="https://firebasestorage.googleapis.com/v0/b/soul-code-app.firebasestorage.app/o/384cb54f-700f-4a40-a48f-c7ab31e9f4f3_image.png?alt=media&token=64a2f84e-7616-4e2f-aa5e-2f5a0225419f" alt="Personal Code Reading">
         </div>
         <a href="http://codeofsuccess.karmadecoded.top/" class="featured-button">Free Personal Code of Success Reading</a>
       </div>
@@ -767,67 +772,103 @@
   </section>
 
   <script>
-    // Duplicate testimonials for infinite scroll
-    const track = document.querySelector('.testimonial-track');
-    const cards = Array.from(track.children);
+    
+  // Duplicate testimonials for infinite effect
+  const track = document.querySelector('.testimonial-track');
+  const cards = Array.from(track.children);
+  
+  // Clone testimonials 3 times for smooth infinite scroll
+  for (let i = 0; i < 3; i++) {
     cards.forEach(card => {
       const clone = card.cloneNode(true);
       track.appendChild(clone);
     });
+  }
 
-    // Touch/mouse drag functionality
-    let isDragging = false;
-    let startX;
-    let scrollContainer = document.querySelector('.testimonials-scroll');
-    
-    scrollContainer.addEventListener('mousedown', (e) => {
-      isDragging = true;
-      startX = e.pageX;
-      track.style.animationPlayState = 'paused';
-    });
+  const scrollContainer = document.querySelector('.testimonials-scroll');
+  let isAutoScrolling = true;
+  let autoScrollInterval;
+  let userInteractionTimeout;
 
-    scrollContainer.addEventListener('mousemove', (e) => {
-      if (!isDragging) return;
-      e.preventDefault();
-      const x = e.pageX;
-      const walk = (x - startX) * 2;
-      const currentTransform = track.style.transform.match(/translateX\(([-\d.]+)px\)/);
-      const currentX = currentTransform ? parseFloat(currentTransform[1]) : 0;
-      track.style.transform = `translateX(${currentX + walk}px)`;
-      startX = x;
-    });
-
-    scrollContainer.addEventListener('mouseup', () => {
-      isDragging = false;
-      track.style.animationPlayState = 'running';
-    });
-
-    scrollContainer.addEventListener('mouseleave', () => {
-      if (isDragging) {
-        isDragging = false;
-        track.style.animationPlayState = 'running';
+  // Auto-scroll function
+  function startAutoScroll() {
+    autoScrollInterval = setInterval(() => {
+      if (isAutoScrolling) {
+        scrollContainer.scrollLeft += 1; // Slow auto-scroll speed
+        
+        // Reset to beginning for infinite loop
+        const maxScroll = scrollContainer.scrollWidth / 4;
+        if (scrollContainer.scrollLeft >= maxScroll) {
+          scrollContainer.scrollLeft = 1;
+        }
       }
-    });
+    }, 30); // Adjust timing for smoothness (lower = faster)
+  }
 
-    // Touch events for mobile
-    scrollContainer.addEventListener('touchstart', (e) => {
-      startX = e.touches[0].pageX;
-      track.style.animationPlayState = 'paused';
-    });
+  // Stop auto-scroll temporarily when user interacts
+  function pauseAutoScroll() {
+    isAutoScrolling = false;
+    clearTimeout(userInteractionTimeout);
+    userInteractionTimeout = setTimeout(() => {
+      isAutoScrolling = true;
+    }, 3000); // Resume after 3 seconds of no interaction
+  }
 
-    scrollContainer.addEventListener('touchmove', (e) => {
-      const x = e.touches[0].pageX;
-      const walk = (x - startX) * 2;
-      const currentTransform = track.style.transform.match(/translateX\(([-\d.]+)px\)/);
-      const currentX = currentTransform ? parseFloat(currentTransform[1]) : 0;
-      track.style.transform = `translateX(${currentX + walk}px)`;
-      startX = x;
-    });
+  // Mouse/Touch drag functionality
+  let isDragging = false;
+  let startX;
+  let scrollLeft;
 
-    scrollContainer.addEventListener('touchend', () => {
-      track.style.animationPlayState = 'running';
-    });
-  </script>
+  scrollContainer.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    startX = e.pageX - scrollContainer.offsetLeft;
+    scrollLeft = scrollContainer.scrollLeft;
+    pauseAutoScroll();
+  });
+
+  scrollContainer.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const x = e.pageX - scrollContainer.offsetLeft;
+    const walk = (x - startX) * 2;
+    scrollContainer.scrollLeft = scrollLeft - walk;
+  });
+
+  scrollContainer.addEventListener('mouseup', () => {
+    isDragging = false;
+  });
+
+  scrollContainer.addEventListener('mouseleave', () => {
+    isDragging = false;
+  });
+
+  // Pause on hover
+  scrollContainer.addEventListener('mouseenter', () => {
+    pauseAutoScroll();
+  });
+
+  scrollContainer.addEventListener('mouseleave', () => {
+    isAutoScrolling = true;
+  });
+
+  // Touch events for mobile swipe
+  scrollContainer.addEventListener('touchstart', () => {
+    pauseAutoScroll();
+  });
+
+  scrollContainer.addEventListener('scroll', () => {
+    // Reset scroll position for infinite loop
+    const maxScroll = scrollContainer.scrollWidth / 4;
+    if (scrollContainer.scrollLeft >= maxScroll) {
+      scrollContainer.scrollLeft = 1;
+    } else if (scrollContainer.scrollLeft <= 0) {
+      scrollContainer.scrollLeft = maxScroll - scrollContainer.clientWidth;
+    }
+  });
+
+  // Start auto-scrolling
+  startAutoScroll();
+</script>
 
   <!-- Footer -->
   <footer>
